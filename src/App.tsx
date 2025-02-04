@@ -13,14 +13,9 @@ function App() {
   let [error, setError] = useState<string | null>(null);
   let [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  let showSuccess = (message: string) => {
-    setSuccessMessage(message);
-    setTimeout(() => setSuccessMessage(null), 3000);
-  };
-
-  let showError = (message: string) => {
-    setError(message);
-    setTimeout(() => setError(null), 3000);
+  let showMessage = (setter: React.Dispatch<React.SetStateAction<string | null>>, message: string) => {
+    setter(message);
+    setTimeout(() => setter(null), 3000);
   };
 
   let fetchCars = async () => {
@@ -29,7 +24,7 @@ function App() {
       let response = await axios.get(`${API_URL}/cars`);
       setCars(response.data);
     } catch (error) {
-      showError('Error fetching cars. Please try again.');
+      showMessage(setError, 'Error fetching cars. Please try again.');
       console.error('Error fetching cars:', error);
     } finally {
       setLoading(false);
@@ -41,8 +36,10 @@ function App() {
       setLoading(true);
       let response = await axios.get(`${API_URL}/cars/${id}`);
       setSelectedCar(response.data);
+      setMark(response.data.mark);
+      setModel(response.data.model);
     } catch (error) {
-      showError('Error fetching car details. Please try again.');
+      showMessage(setError, 'Error fetching car details. Please try again.');
       console.error('Error fetching car:', error);
     } finally {
       setLoading(false);
@@ -52,59 +49,41 @@ function App() {
   let handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!mark.trim() || !model.trim()) {
-      showError('Please fill in all fields');
+      showMessage(setError, 'Please fill in all fields');
       return;
     }
 
     try {
       setLoading(true);
       if (selectedCar) {
-        await updateCar(selectedCar.id);
-        showSuccess('Car updated successfully!');
+        await axios.put(`${API_URL}/cars/${selectedCar.id}`, { mark, model });
+        showMessage(setSuccessMessage, 'Car updated successfully!');
       } else {
         await axios.post(`${API_URL}/cars`, { mark, model });
-        showSuccess('Car added successfully!');
-        setMark('');
-        setModel('');
+        showMessage(setSuccessMessage, 'Car added successfully!');
       }
+      setMark('');
+      setModel('');
+      setSelectedCar(null);
       fetchCars();
     } catch (error) {
-      showError('Error submitting form. Please try again.');
+      showMessage(setError, 'Error submitting form. Please try again.');
       console.error('Error submitting form:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  let updateCar = async (id: number) => {
-    try {
-      setLoading(true);
-      await axios.put(`${API_URL}/cars/${id}`, { mark, model });
-      setSelectedCar(null);
-      setMark('');
-      setModel('');
-      showSuccess('Car updated successfully!');
-      fetchCars();
-    } catch (error) {
-      showError('Error updating car. Please try again.');
-      console.error('Error updating car:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   let deleteCar = async (id: number) => {
-    if (!window.confirm('Are you sure you want to delete this car?')) {
-      return;
-    }
+    if (!window.confirm('Are you sure you want to delete this car?')) return;
 
     try {
       setLoading(true);
       await axios.delete(`${API_URL}/cars/${id}`);
-      showSuccess('Car deleted successfully!');
+      showMessage(setSuccessMessage, 'Car deleted successfully!');
       fetchCars();
     } catch (error) {
-      showError('Error deleting car. Please try again.');
+      showMessage(setError, 'Error deleting car. Please try again.');
       console.error('Error deleting car:', error);
     } finally {
       setLoading(false);
@@ -118,23 +97,12 @@ function App() {
   return (
     <div className="container">
       <h1 className="title">React + Axios + Express</h1>
-      
-      {error && (
-      <div className="alert alert-error">
-        {error}
-      </div>
-      )}
-      
-      {successMessage && (
-      <div className="alert alert-success">
-        {successMessage}
-      </div>
-      )}
+
+      {error && <div className="alert alert-error">{error}</div>}
+      {successMessage && <div className="alert alert-success">{successMessage}</div>}
 
       <div className="form-container">
-        <h2 className="form-title">
-          {selectedCar ? 'Edit Car' : 'Add New Car'}
-        </h2>
+        <h2 className="form-title">{selectedCar ? 'Edit Car' : 'Add New Car'}</h2>
         <form onSubmit={handleSubmit}>
           <div className="form-grid">
             <div className="form-group">
@@ -156,6 +124,7 @@ function App() {
                 onChange={(e) => setModel(e.target.value)}
                 className="form-input"
                 required
+                disabled={loading}
               />
             </div>
           </div>
@@ -181,9 +150,9 @@ function App() {
         </form>
       </div>
 
-        {loading && <div className="loading">Loading...</div>}
+      {loading && <div className="loading">Loading...</div>}
 
-        <table className="table">
+      <table className="table">
         <thead>
           <tr>
             <th>ID</th>
@@ -201,19 +170,15 @@ function App() {
               <td>
                 <div className="actions">
                   <button
-                    onClick={() => {
-                      fetchCarById(car.id);
-                      setMark(car.mark);
-                      setModel(car.model);
-                    }}
-                    className="icon-button edit"
+                    onClick={() => fetchCarById(car.id)}
+                    className="edit"
                     disabled={loading}
                   >
                     Edit
                   </button>
                   <button
                     onClick={() => deleteCar(car.id)}
-                    className="icon-button delete"
+                    className="delete"
                     disabled={loading}
                   >
                     Delete
