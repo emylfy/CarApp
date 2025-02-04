@@ -1,0 +1,39 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background-color: #f8fafc;
+  color: #334155;
+  line-height: 1.5;
+}
+
+.alert {
+
+}
+
+.alert-error {
+
+}
+
+.alert-success {
+
+}
+
+.loading {
+  text-align: center;
+  padding: 1rem;
+  color: #6b7280;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.form-input:disabled {
+  background-color: #f3f4f6;
+  cursor: not-allowed;
+}
